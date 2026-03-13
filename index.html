@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <style>body{margin:0;background:#000}iframe{width:100vw;height:100vh;border:0}</style>
+</head>
+<body>
+  <iframe id="p" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  <script>
+    const v = new URLSearchParams(location.search).get('v');
+    if (v) document.getElementById('p').src = `https://www.youtube-nocookie.com/embed/${v}?autoplay=1`;
+  </script>
+</body>
+</html>
