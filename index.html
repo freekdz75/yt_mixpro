@@ -145,6 +145,20 @@
     });
 
     updateFocus();
+
+    // Focus l'iframe pour que la télécommande y envoie les touches
+    iframe.addEventListener('load', () => {
+      iframe.focus();
+    });
+
+    // Touche Back (10009 Samsung, 27 ESC) → ferme l'overlay dans l'app parent
+    document.addEventListener('keydown', (e) => {
+      if (e.keyCode === 10009 || e.keyCode === 27) {
+        window.parent.postMessage({ action: 'closeTrailer' }, '*');
+        e.preventDefault();
+        return;
+      }
+    }, true); // capture phase pour intercepter avant l'iframe
   </script>
 </body>
 </html>
