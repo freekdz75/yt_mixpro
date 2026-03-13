@@ -2,13 +2,149 @@
 <html>
 <head>
   <meta name="referrer" content="strict-origin-when-cross-origin">
-  <style>body{margin:0;background:#000}iframe{width:100vw;height:100vh;border:0}</style>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #000; width: 100vw; height: 100vh; overflow: hidden; }
+    #player { width: 100%; height: 100%; border: 0; }
+    #controls {
+      position: fixed;
+      bottom: 30px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 16px;
+      background: rgba(0,0,0,0.7);
+      padding: 12px 20px;
+      border-radius: 40px;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    #controls.visible { opacity: 1; }
+    .btn {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      border: 2px solid rgba(255,255,255,0.4);
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+      font-size: 22px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      outline: none;
+    }
+    .btn.focused {
+      border-color: #fff;
+      background: rgba(255,255,255,0.3);
+      transform: scale(1.15);
+    }
+  </style>
 </head>
 <body>
-  <iframe id="p" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>
+  <iframe id="player" allowfullscreen
+    referrerpolicy="strict-origin-when-cross-origin"
+    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
+  </iframe>
+
+  <div id="controls">
+    <button class="btn" data-action="rewind" title="Reculer 10s">⏪</button>
+    <button class="btn" data-action="play" title="Play">▶</button>
+    <button class="btn" data-action="pause" title="Pause">⏸</button>
+    <button class="btn" data-action="forward" title="Avancer 10s">⏩</button>
+    <button class="btn" data-action="mute" title="Muet">🔇</button>
+    <button class="btn" data-action="unmute" title="Son">🔊</button>
+  </div>
+
   <script>
     const v = new URLSearchParams(location.search).get('v');
-    if (v) document.getElementById('p').src = `https://www.youtube-nocookie.com/embed/${v}?autoplay=1`;
+    const iframe = document.getElementById('player');
+    const controls = document.getElementById('controls');
+    const buttons = Array.from(controls.querySelectorAll('.btn'));
+    let focusIdx = 1; // play par défaut
+    let controlsVisible = false;
+    let hideTimer = null;
+
+    if (v) {
+      iframe.src = `https://www.youtube-nocookie.com/embed/${v}?autoplay=1&enablejsapi=1&playsinline=1`;
+    }
+
+    function sendCmd(func, args) {
+      iframe.contentWindow.postMessage(JSON.stringify({ event: 'command', func, args: args || [] }), '*');
+    }
+
+    function showControls() {
+      controlsVisible = true;
+      controls.classList.add('visible');
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => {
+        controls.classList.remove('visible');
+        controlsVisible = false;
+      }, 3000);
+    }
+
+    function updateFocus() {
+      buttons.forEach((b, i) => b.classList.toggle('focused', i === focusIdx));
+    }
+
+    function execAction(action) {
+      switch (action) {
+        case 'play':    sendCmd('playVideo'); break;
+        case 'pause':   sendCmd('pauseVideo'); break;
+        case 'rewind':  sendCmd('seekTo', [Math.max(0, (window._currentTime || 0) - 10), true]); break;
+        case 'forward': sendCmd('seekTo', [(window._currentTime || 0) + 10, true]); break;
+        case 'mute':    sendCmd('mute'); break;
+        case 'unmute':  sendCmd('unMute'); break;
+      }
+    }
+
+    // Ecoute currentTime depuis postMessage YouTube
+    window.addEventListener('message', (e) => {
+      try {
+        const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
+        if (data?.info?.currentTime) window._currentTime = data.info.currentTime;
+      } catch (_) {}
+    });
+
+    // Navigation télécommande
+    document.addEventListener('keydown', (e) => {
+      switch (e.keyCode) {
+        case 13:  // OK/Enter
+          if (!controlsVisible) { showControls(); updateFocus(); }
+          else { execAction(buttons[focusIdx].dataset.action); showControls(); }
+          break;
+        case 37:  // Gauche
+          showControls();
+          focusIdx = (focusIdx - 1 + buttons.length) % buttons.length;
+          updateFocus();
+          break;
+        case 39:  // Droite
+          showControls();
+          focusIdx = (focusIdx + 1) % buttons.length;
+          updateFocus();
+          break;
+        case 38:  // Haut — affiche controls
+        case 40:  // Bas
+          showControls();
+          updateFocus();
+          break;
+        case 415: // Play (touche dédiée télécommande)
+          sendCmd('playVideo');
+          break;
+        case 19:  // Pause (touche dédiée)
+          sendCmd('pauseVideo');
+          break;
+        case 417: // Fast Forward
+          sendCmd('seekTo', [(window._currentTime || 0) + 10, true]);
+          break;
+        case 412: // Rewind
+          sendCmd('seekTo', [Math.max(0, (window._currentTime || 0) - 10), true]);
+          break;
+      }
+      e.preventDefault();
+    });
+
+    updateFocus();
   </script>
 </body>
 </html>
