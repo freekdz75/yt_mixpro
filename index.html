@@ -147,7 +147,10 @@
     updateFocus();
 
     // Focus l'iframe pour que la télécommande y envoie les touches
-    // Ne pas mettre le focus sur l'iframe - les touches doivent rester dans l'app Tizen
+    // Focus l'iframe pour que OK/flèches de la télécommande interagissent avec la page relay
+    iframe.addEventListener('load', () => {
+      iframe.focus();
+    });
 
     // Touche Back (10009 Samsung, 27 ESC) → ferme l'overlay dans l'app parent
     document.addEventListener('keydown', (e) => {
