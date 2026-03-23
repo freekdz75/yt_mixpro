@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <meta name="referrer" content="origin">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #000; width: 100vw; height: 100vh; overflow: hidden; }
@@ -43,7 +43,7 @@
 </head>
 <body>
   <iframe id="player" allowfullscreen
-    referrerpolicy="strict-origin-when-cross-origin"
+    referrerpolicy="origin"
     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture">
   </iframe>
 
@@ -102,7 +102,9 @@
     window.addEventListener('message', (e) => {
       try {
         const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data;
-        if (data?.info?.currentTime) window._currentTime = data.info.currentTime;
+        if (data && data.info && data.info.currentTime) {
+          window._currentTime = data.info.currentTime;
+        }
       } catch (_) {}
     });
 
